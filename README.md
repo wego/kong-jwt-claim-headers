@@ -6,7 +6,7 @@ the upstream service.
 ## Installation
 
 ```bash
-luarocks install kong-jwt-claim-headers
+luarocks install https://github.com/wego/kong-jwt-claim-headers/releases/download/v1.0.0/kong-jwt-claim-headers-1.0-1.src.rock
 ```
 
 ## How it works
