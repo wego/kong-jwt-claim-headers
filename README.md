@@ -60,6 +60,15 @@ form parameter|required|description
 `name`|*required*|The name of the plugin to use, in this case: `jwt-claim-headers`
 `uri_param_names`|*optional*|A list of querystring parameters that Kong will inspect to retrieve JWTs. Defaults to `jwt`.
 
+## How to release
+
+Create the Lua rock in current directory:
+```bash
+luarocks pack kong-plugin-jwt-claim-headers-1.0-1.rockspec
+```
+
+[Release](https://github.com/wego/kong-jwt-claim-headers/releases) the Lua rock via GitHub.
+
 ## Acknowledgements
 
 Inspired by [kong-plugin-jwt-claims-headers](https://github.com/wshirey/kong-plugin-jwt-claims-headers), thanks **wshirey**!
