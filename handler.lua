@@ -1,5 +1,4 @@
 local BasePlugin = require "kong.plugins.base_plugin"
-local responses = require "kong.tools.responses"
 local jwt_decoder = require "kong.plugins.jwt.jwt_parser"
 local JWT_PLUGIN_PRIORITY = (require "kong.plugins.jwt.handler").PRIORITY
 local CLAIM_HEADERS = require "kong.plugins.jwt-claim-headers.claim_headers"
