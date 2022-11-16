@@ -1,19 +1,17 @@
-local BasePlugin = require "kong.plugins.base_plugin"
 local jwt_decoder = require "kong.plugins.jwt.jwt_parser"
 local JWT_PLUGIN_PRIORITY = (require "kong.plugins.jwt.handler").PRIORITY
 local CLAIM_HEADERS = require "kong.plugins.jwt-claim-headers.claim_headers"
 
-local ngx_set_header = ngx.req.set_header
+local kong = kong
 local ngx_re_gmatch = ngx.re.gmatch
 
-local JwtClaimHeadersHandler = BasePlugin:extend()
+local JwtClaimHeadersHandler = {
+  VERSION = "2.0.0",
+  PRIORITY = JWT_PLUGIN_PRIORITY - 100,
+}
 
--- Set this plugin to execute after the default jwt plugin provided by Kong
--- Plugins with higher priority are executed first
-JwtClaimHeadersHandler.PRIORITY = JWT_PLUGIN_PRIORITY - 100
-
-local function retrieve_token(request, conf)
-  local uri_parameters = request.get_uri_args()
+local function retrieve_token(conf)
+  local uri_parameters = kong.request.get_query()
 
   for _, v in ipairs(conf.uri_param_names) do
     if uri_parameters[v] then
@@ -21,7 +19,7 @@ local function retrieve_token(request, conf)
     end
   end
 
-  local authorization_header = request.get_headers()["authorization"]
+  local authorization_header = kong.request.get_headers()["authorization"]
   if authorization_header then
     local iterator, iter_err = ngx_re_gmatch(authorization_header, "\\s*[Bb]earer\\s+(.+)")
     if not iterator then
@@ -39,21 +37,36 @@ local function retrieve_token(request, conf)
   end
 end
 
-function JwtClaimHeadersHandler:new()
-  JwtClaimHeadersHandler.super.new(self, "jwt-claim-headers")
-end
-
 function JwtClaimHeadersHandler:access(conf)
-  JwtClaimHeadersHandler.super.access(self)
+  local token, err = retrieve_token(conf)
+  if err then
+    kong.log.warn("unable to retrieve token: ", err)
+    return
+  end
 
-  local token, _ = retrieve_token(ngx.req, conf)
-  local jwt, _ = jwt_decoder:new(token)
+  local token_type = type(token)
+  if token_type ~= "string" then
+    if token_type == "nil" then
+      kong.log.warn("missing token")
+      return
+    else
+      kong.log.err("unrecognizable token")
+      return
+    end
+  end
+
+  local jwt, err = jwt_decoder:new(token)
+  if err then
+    kong.log.err("bad token: ", err)
+    return
+  end
+
   local claims = jwt.claims
 
   for claim_key, claim_value in pairs(claims) do
-    request_header = CLAIM_HEADERS[claim_key]
+    local request_header = CLAIM_HEADERS[claim_key]
     if request_header ~= nil then
-      ngx_set_header(request_header, claim_value)
+      kong.service.request.set_header(request_header, claim_value)
     end
   end
 end
